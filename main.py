@@ -1,7 +1,19 @@
 import cv2
+import urllib.request
+import numpy as np
 from simple_facerec import SimpleFacerec
+import os
+from dotenv import load_dotenv
 
+load_dotenv() 
+
+ip = os.getenv("IP")
+
+#webcam:
 cap = cv2.VideoCapture(0)
+#ESP32:
+#cap = cv2.VideoCapture(ip)
+
 sfr = SimpleFacerec()
 sfr.load_encoding_images("images/")
 
