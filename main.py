@@ -11,8 +11,31 @@ import json
 
 load_dotenv() 
 
-ip = os.getenv("IP")
+ip = os.getenv("IP_SCHOOL")
 print(ip)
+
+db = []
+embeddings = []
+
+def update():
+    global db
+    global embeddings
+    url='http://localhost:3000/get_faces'
+    req = urllib.request.Request(url)
+    content=""
+    with urllib.request.urlopen(req) as response:
+        content = json.load(response)
+
+    l=len(content)
+    c=0
+    while(c<l):
+        db.append(json.loads(content[c]))
+        embeddings.append(json.loads(content[c])["embeddings"])
+        c=c+1
+    # print(embeddings)
+    # print(content)
+
+update()
 
 #webcam:
 #cap = cv2.VideoCapture(0)
@@ -21,8 +44,8 @@ print(ip)
 
 cv2.namedWindow("test")
 
-sfr = SimpleFacerec()
-sfr.load_encoding_images("images/")
+# sfr = SimpleFacerec()
+# sfr.load_encoding_images("images/")
 
 frame_resizing = 0.25
 request_status = False
@@ -70,18 +93,23 @@ def verified(frame, p_encodings):
         #     self.request(encoding)
 
         #for the first face
-        request(face_encodings[0])
+        #request(face_encodings[0])
+        i=0
+        for emb in embeddings:
+            if(face_recognition.face_distance(emb, face_encodings[0]) < tolerance):
+                print("I recognize you, "+db[i]["name"])
+            i=i+1
 
     return face_encodings
 
 embeddings = []
 
 while True:
-    imgResponse = urllib.request.urlopen(ip, timeout=5)
+    imgResponse = urllib.request.urlopen(ip, timeout=15)
     imgNp = np.array(bytearray(imgResponse.read()), dtype=np.uint8)
     frame=cv2.imdecode(imgNp, -1)
     #cv2.imshow("test", img)
-    time.sleep(.2)
+    #time.sleep(1)
     #ret, frame = cap.read()
 
     cv2.imshow("Frame", frame)
@@ -93,10 +121,10 @@ while True:
     #checking dist
     #face_recognition.compare_faces([], , 0.5)
 
-    # for face_loc, name in zip(face_locations, face_names):
-    #     y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
-    #     cv2.putText(frame, name,(x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
-    #     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 200), 4)
+    for face_loc, name in zip(face_locations, face_names):
+        y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
+        cv2.putText(frame, name,(x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 200), 4)
         
     cv2.imshow("Frame", frame)
 
