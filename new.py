@@ -1,33 +1,43 @@
 import cv2
 import urllib.request
 import numpy as np
- 
-# Replace the URL with the IP camera's stream URL
-url = 'http://192.168.3.100/video'
-cv2.namedWindow("live Cam Testing", cv2.WINDOW_AUTOSIZE)
- 
- 
-# Create a VideoCapture object
-cap = cv2.VideoCapture(url)
- 
-# Check if the IP camera stream is opened successfully
-if not cap.isOpened():
-    print("Failed to open the IP camera stream")
-    exit()
- 
-# Read and display video frames
+from simple_facerec import SimpleFacerec
+import os
+from dotenv import load_dotenv
+import time
+import face_recognition
+
+load_dotenv() 
+
+ip = os.getenv("IP")
+print(ip)
+
+#webcam:
+cap = cv2.VideoCapture(0)
+#ESP32:
+#cap = cv2.VideoCapture(ip)
+
+cv2.namedWindow("test")
+
+sfr = SimpleFacerec()
+#sfr.load_encoding_images("images/")
+
+embeddings = []
+
 while True:
-    # Read a frame from the video stream
-    img_resp=urllib.request.urlopen(url)
-    imgnp=np.array(bytearray(img_resp.read()),dtype=np.uint8)
-    #ret, frame = cap.read()
-    im = cv2.imdecode(imgnp,-1)
- 
-    cv2.imshow('live Cam Testing',im)
-    key=cv2.waitKey(5)
-    if key==ord('q'):
+    time.sleep(.2)
+    ret, frame = cap.read()
+
+    cv2.imshow("Frame", frame)
+
+    # Detect Faces
+    embeddings = sfr.verified(frame, embeddings)
+        
+    cv2.imshow("Frame", frame)
+
+    key = cv2.waitKey(1)
+    if key == 27:
         break
-    
- 
-cap.release()
+
+# cap.release()
 cv2.destroyAllWindows()

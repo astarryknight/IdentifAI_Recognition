@@ -3,11 +3,16 @@ import cv2
 import os
 import glob
 import numpy as np
+import urllib.request
+import urllib.parse
+
+
 
 class SimpleFacerec:
     def __init__(self):
         self.known_face_encodings = []
         self.known_face_names = []
+        self.ctr=0
 
         # Resize frame for a faster speed
         self.frame_resizing = 0.25
@@ -39,13 +44,27 @@ class SimpleFacerec:
             self.known_face_names.append(filename)
         print("Encoding images loaded")
 
-    def detect_known_faces(self, frame):
+    def detect_known_faces(self, frame, p_encodings):
         small_frame = cv2.resize(frame, (0, 0), fx=self.frame_resizing, fy=self.frame_resizing)
         # Find all the faces and face encodings in the current frame of video
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+        # tolerance = 0.5
+
+        # verified = False
+        # for c_face_encoding in face_encodings:
+        #     for p_face_encoding in p_encodings:
+        #         if(face_recognition.face_distance(p_face_encoding, c_face_encoding) >= tolerance):
+        #             #means the data was already sent to server for verification
+        #             verified = True
+        #             break
+        # if(not verified):
+        #     #send request to server
+        #     print("hi")
+        # return face_encodings
+
 
         face_names = []
         for face_encoding in face_encodings:
@@ -69,3 +88,42 @@ class SimpleFacerec:
         face_locations = np.array(face_locations)
         face_locations = face_locations / self.frame_resizing
         return face_locations.astype(int), face_names
+
+    def request(self, encoding):
+        url='http://localhost:3000/check_id'
+        data = {
+            "embedding": encoding
+        }
+        data = urllib.parse.urlencode(data).encode('utf-8')
+        req = urllib.request.Request(url, data=data)
+        req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        with urllib.request.urlopen(req) as response:
+            response_data = response.read().decode('utf-8')
+        print(response_data)
+
+
+    def verified(self, frame, p_encodings):
+        small_frame = cv2.resize(frame, (0, 0), fx=self.frame_resizing, fy=self.frame_resizing)
+        # Find all the faces and face encodings in the current frame of video
+        # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_small_frame)
+        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+        tolerance = 0.5
+
+        verified = False
+        if((len(p_encodings)>0) and len(face_encodings)>0):
+            for c_face_encoding in face_encodings:     
+                if(face_recognition.face_distance(p_encodings, c_face_encoding)):
+                    verified=True
+                    break
+            #print(face_encodings)
+        if(not verified and len(face_encodings)>0):
+            #send request to server
+            #for each face
+            # for encoding in face_encodings:
+            #     self.request(encoding)
+
+            #for the first face
+            self.request(face_encodings[0])
+        return face_encodings

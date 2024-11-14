@@ -5,6 +5,7 @@ from simple_facerec import SimpleFacerec
 import os
 from dotenv import load_dotenv
 import time
+import face_recognition
 
 load_dotenv() 
 
@@ -33,6 +34,10 @@ while True:
 
     # Detect Faces
     face_locations, face_names = sfr.detect_known_faces(frame)
+
+    #checking dist
+    #face_recognition.compare_faces([], , 0.5)
+
     for face_loc, name in zip(face_locations, face_names):
         y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
         cv2.putText(frame, name,(x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
