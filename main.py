@@ -42,7 +42,7 @@ def update():
         db.append(json.loads(content[c]))
         embeddings.append(np.array(json.loads(content[c])["embeddings"])) #UNCOMMENT FOR PROD PLEASE
         c=c+1
-    print(embeddings)
+    # print(embeddings)
     # print(content)
 
 update() #UNCOMMENT FOR PROD PLEASE
@@ -97,7 +97,7 @@ def verified(frame, p_encodings):
     #             break
         #print(face_encodings)
     if(len(face_encodings)>0):
-        print("i see u")
+        # print("i see u")
         #send request to server
         #for each face
         # for encoding in face_encodings:
@@ -106,8 +106,8 @@ def verified(frame, p_encodings):
         #for the first face
         #request(face_encodings[0])
         i=0
-        print(len(embeddings))
-        print(len(db))
+        # print(len(embeddings))
+        # print(len(db))
         while(i<(len(embeddings)-0)):
             emb=embeddings[i] #CHECK THIS LATER
             #print("why tho", flush=True)
@@ -115,7 +115,7 @@ def verified(frame, p_encodings):
             matches = face_recognition.compare_faces([emb], face_encodings[0], tolerance)
             #print(matches, flush=True)
             if True in matches:
-                print("i recognize you...")
+                # print("i recognize you...")
                 print("hi "+str(db[i]["name"]))
             # if(face_recognition.face_distance(emb, face_encodings[0]) < tolerance):
             #     print("I recognize you, "+db[i]["name"])
