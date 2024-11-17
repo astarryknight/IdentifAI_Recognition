@@ -32,6 +32,8 @@ class SimpleFacerec:
         for img_path in images_path:
             img = cv2.imread(img_path)
             rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            print("IMIMIMIMIMIMI")
+            print(img)
 
             # Get the filename only from the initial file path.
             basename = os.path.basename(img_path)
@@ -82,10 +84,10 @@ class SimpleFacerec:
             #     name = self.known_face_names[first_match_index]
 
             # Or instead, use the known face with the smallest distance to the new face
-            # face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-            # best_match_index = np.argmin(face_distances)
-            # if matches[best_match_index]:
-            #     name = self.known_face_names[best_match_index]
+            face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+            best_match_index = np.argmin(face_distances)
+            if matches[best_match_index]:
+                name = self.known_face_names[best_match_index]
             face_names.append(name)
 
         # Convert to numpy array to adjust coordinates with frame resizing quickly

@@ -25,12 +25,15 @@ a=np.array([
 #STORE DATA AS A AN ARRAY, CAN BE CONVERTED TO NPARRAY PRETTY EASILY - np.array(array) etc
 
 db = []
-embeddings = [a]
+embeddings = []
+
+current_faces=[]
 
 def update():
     global db
     global embeddings
-    url='http://localhost:3000/get_faces'
+    #url='http://localhost:3000/get_faces'
+    url='http://127.0.0.1:5000/get_faces'
     req = urllib.request.Request(url)
     content=""
     with urllib.request.urlopen(req) as response:
@@ -42,7 +45,7 @@ def update():
         db.append(json.loads(content[c]))
         embeddings.append(np.array(json.loads(content[c])["embeddings"])) #UNCOMMENT FOR PROD PLEASE
         c=c+1
-    # print(embeddings)
+    print(embeddings)
     # print(content)
 
 update() #UNCOMMENT FOR PROD PLEASE
@@ -54,8 +57,8 @@ cap = cv2.VideoCapture(0)
 
 cv2.namedWindow("test")
 
-# sfr = SimpleFacerec()
-# sfr.load_encoding_images("images/")
+sfr = SimpleFacerec()
+sfr.load_encoding_images("images/")
 
 frame_resizing = 0.25
 request_status = False
@@ -81,13 +84,17 @@ def request(encoding):
 
 
 def verified(frame, p_encodings):
+    global current_faces
     small_frame = cv2.resize(frame, (0, 0), fx=frame_resizing, fy=frame_resizing)
     # Find all the faces and face encodings in the current frame of video
     # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
     rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
     face_locations = face_recognition.face_locations(rgb_small_frame)
     face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
-    tolerance = 0.7
+
+    tolerance = 0.05
+    c_clean = 100 #number of faces to define N
+    r_ratio = 0.7 #ratio of faces in past N (c_clean) that need to match for a definite recognition
 
     # if((len(p_encodings)>0) and len(face_encodings)>0):
     #     for c_face_encoding in face_encodings:    
@@ -113,14 +120,30 @@ def verified(frame, p_encodings):
             #print("why tho", flush=True)
             #print([emb])
             matches = face_recognition.compare_faces([emb], face_encodings[0], tolerance)
+            print(type(matches))
+            #print(np.isin(matches[0], ))
+            #np.any(matches[0][:,0]==np.True_)
+            #print(matches.count(True))
+            #print(matches[0])
             #print(matches, flush=True)
-            if True in matches:
+            if np.any(matches[0]==np.True_):
                 # print("i recognize you...")
                 print("hi "+str(db[i]["name"]))
+            else:
+                print("i dont see anyone i know :(")
             # if(face_recognition.face_distance(emb, face_encodings[0]) < tolerance):
             #     print("I recognize you, "+db[i]["name"])
-            i=i+1
+            if(len(current_faces)>=c_clean):
+                a=current_faces.count(db[i]["name"])
+                r=a/len(current_faces)
+                if(r>=r_ratio):
+                    print("I KNOW ITS YOU"+db[i]["name"])
+                current_faces.pop()
+            current_faces.append(db[i]["name"])
 
+            i=i+1
+    else:
+        print("i dont see anyone i know :(")
     return face_encodings
 
 # embeddings = []
@@ -135,17 +158,17 @@ while True:
 
     cv2.imshow("Frame", frame)
 
-    # Detect Faces
-    # face_locations, face_names = sfr.detect_known_faces(frame)
+    #Detect Faces
+    face_locations, face_names = sfr.detect_known_faces(frame)
     embeddings = verified(frame, embeddings)
 
     #checking dist
     #face_recognition.compare_faces([], , 0.5)
 
-    # for face_loc, name in zip(face_locations, face_names):
-    #     y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
-    #     cv2.putText(frame, name,(x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
-    #     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 200), 4)
+    for face_loc, name in zip(face_locations, face_names):
+        y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
+        cv2.putText(frame, name,(x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 200), 4)
         
     cv2.imshow("Frame", frame)
 
