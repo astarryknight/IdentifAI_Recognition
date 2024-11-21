@@ -8,10 +8,11 @@ from dotenv import load_dotenv
 import time
 import face_recognition
 import json
+from collections import Counter
 
 load_dotenv() 
 
-ip = os.getenv("IP_SCHOOL")
+ip = os.getenv("IP")
 print(ip)
 
 a=np.array([
@@ -45,7 +46,7 @@ def update():
         db.append(json.loads(content[c]))
         embeddings.append(np.array(json.loads(content[c])["embeddings"])) #UNCOMMENT FOR PROD PLEASE
         c=c+1
-    print(embeddings)
+    #print(embeddings)
     # print(content)
 
 update() #UNCOMMENT FOR PROD PLEASE
@@ -57,8 +58,13 @@ cap = cv2.VideoCapture(0)
 
 cv2.namedWindow("test")
 
-sfr = SimpleFacerec()
-sfr.load_encoding_images("images/")
+# sfr = SimpleFacerec()
+# print("MINE")
+# for i in embeddings:
+#     sfr.server_images(i[0])
+# print("THEIRS")
+# sfr.load_encoding_images("images/")
+# time.sleep(5)
 
 frame_resizing = 0.25
 request_status = False
@@ -79,8 +85,21 @@ def request(encoding):
         req.add_header('Content-Type', 'application/json')
         with urllib.request.urlopen(req) as response:
             response_data = response.read().decode('utf-8')
-        print(response_data)
+        #print(response_data)
         request_status=False
+
+def clean_input(names):
+    c_clean = 20 #number of faces to define N
+    r_ratio = 0.7 #ratio of faces in past N (c_clean) that need to match for a definite recognition
+
+    # if(len(names)>=c_clean):
+    #     a=names.count(db[i]["name"])
+    #     r=a/len(names)
+    #     if(r>=r_ratio):
+    #         return db[i]["id"]
+    #     current_faces.pop()
+    # current_faces.append(db[i]["name"])
+    
 
 
 def verified(frame, p_encodings):
@@ -92,7 +111,7 @@ def verified(frame, p_encodings):
     face_locations = face_recognition.face_locations(rgb_small_frame)
     face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
-    tolerance = 0.05
+    tolerance = 0.0005
     c_clean = 100 #number of faces to define N
     r_ratio = 0.7 #ratio of faces in past N (c_clean) that need to match for a definite recognition
 
@@ -120,7 +139,7 @@ def verified(frame, p_encodings):
             #print("why tho", flush=True)
             #print([emb])
             matches = face_recognition.compare_faces([emb], face_encodings[0], tolerance)
-            print(type(matches))
+            #print(type(matches))
             #print(np.isin(matches[0], ))
             #np.any(matches[0][:,0]==np.True_)
             #print(matches.count(True))
@@ -146,21 +165,75 @@ def verified(frame, p_encodings):
         print("i dont see anyone i know :(")
     return face_encodings
 
+
+running_names=[]
+def detect_known_faces(frame,array):
+        global running_names
+        frame_resizing=0.25
+        small_frame = cv2.resize(frame, (0, 0), fx=frame_resizing, fy=frame_resizing)
+        # Find all the faces and face encodings in the current frame of video
+        # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_small_frame)
+        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+        id = None
+        c_clean = 5 #number of faces to define N
+        r_ratio = 0.7 #ratio of faces in past N (c_clean) that need to match for a definite recognition
+        # tolerance = 0.5
+        
+        name = "Unknown"
+
+        face_names = []
+        for face_encoding in face_encodings:
+            # See if the face is a match for the known face(s)
+            matches = face_recognition.compare_faces(array, face_encoding)
+            # Or instead, use the known face with the smallest distance to the new face
+            face_distances = face_recognition.face_distance(array, face_encoding)
+            best_match_index = np.argmin(face_distances)
+            if matches[best_match_index]:
+                name = db[best_match_index]["name"]
+                id = db[best_match_index]["id"]
+                
+            face_names.append(name)
+
+        #cleaning?
+        if(name != "Unknown"):
+            if(len(running_names)>=c_clean):
+                a=running_names.count(name)
+                r=a/len(running_names)
+                if(r>=r_ratio):
+                    print("Hi, "+name+". Your ID Number is "+id+".")
+                running_names.pop()
+            running_names.append(name)
+
+
+        # Convert to numpy array to adjust coordinates with frame resizing quickly
+        face_locations = np.array(face_locations)
+        face_locations = face_locations / frame_resizing
+        return face_locations.astype(int), face_names, id
+
 # embeddings = []
+
+names_running = []
 
 while True:
     # imgResponse = urllib.request.urlopen(ip, timeout=15)
     # imgNp = np.array(bytearray(imgResponse.read()), dtype=np.uint8)
     # frame=cv2.imdecode(imgNp, -1)
-    #cv2.imshow("test", img)
-    #time.sleep(1)
+    #print('hello?')
+
     ret, frame = cap.read()
 
-    cv2.imshow("Frame", frame)
+    # cv2.imshow("Frame", frame)
 
     #Detect Faces
-    face_locations, face_names = sfr.detect_known_faces(frame)
-    embeddings = verified(frame, embeddings)
+    #face_locations, face_names = sfr.detect_known_faces(frame) #CLEAN INPUTS IN THE DETECTION FUNCTION, SINCE YOU HAVE ACCESS TO INDEX
+                                                                #IMPLEMENT FOR MULTIPLE FACES PER PERSON?
+    for i in embeddings:
+        face_locations, face_names, id = detect_known_faces(frame, i)
+        if(id!=None):
+            break
+    #embeddings = verified(frame, embeddings)
 
     #checking dist
     #face_recognition.compare_faces([], , 0.5)
