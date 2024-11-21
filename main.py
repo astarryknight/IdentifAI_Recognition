@@ -46,7 +46,7 @@ def update():
         db.append(json.loads(content[c]))
         embeddings.append(np.array(json.loads(content[c])["embeddings"])) #UNCOMMENT FOR PROD PLEASE
         c=c+1
-    #print(embeddings)
+    print(embeddings)
     # print(content)
 
 update() #UNCOMMENT FOR PROD PLEASE
@@ -167,7 +167,7 @@ def verified(frame, p_encodings):
 
 
 running_names=[]
-def detect_known_faces(frame,array):
+def detect_known_faces(frame,encoding_list):
         global running_names
         frame_resizing=0.25
         small_frame = cv2.resize(frame, (0, 0), fx=frame_resizing, fy=frame_resizing)
@@ -184,27 +184,40 @@ def detect_known_faces(frame,array):
         name = "Unknown"
 
         face_names = []
+        face_dists = []
         for face_encoding in face_encodings:
-            # See if the face is a match for the known face(s)
-            matches = face_recognition.compare_faces(array, face_encoding)
-            # Or instead, use the known face with the smallest distance to the new face
-            face_distances = face_recognition.face_distance(array, face_encoding)
-            best_match_index = np.argmin(face_distances)
-            if matches[best_match_index]:
-                name = db[best_match_index]["name"]
-                id = db[best_match_index]["id"]
+            i=0#test, but prolly good - bugged out with 2 faces
+            for encodings in encoding_list:
+                # See if the face is a match for the known face(s)
+                matches = face_recognition.compare_faces(encodings, face_encoding, 0.5)
+                # Or instead, use the known face with the smallest distance to the new face
+                face_distances = face_recognition.face_distance(encodings, face_encoding)
+                face_dists.append(np.min(face_distances))
+                print(face_dists)
+                best_match_index = np.argmin(face_distances)
+                if matches[best_match_index]:
+                    name = db[i]["name"]#doesnt work for 2 faces?
+                    id = db[i]["id"]
                 
-            face_names.append(name)
+                face_names.append(name)
+                i=i+1
+
+        if(len(face_dists)>0):
+            i=np.argmin(face_dists)
+            print(face_names)
+            name=face_names[i]
+            print("TRY THINS")
+            print(name)
 
         #cleaning?
-        if(name != "Unknown"):
-            if(len(running_names)>=c_clean):
-                a=running_names.count(name)
-                r=a/len(running_names)
-                if(r>=r_ratio):
-                    print("Hi, "+name+". Your ID Number is "+id+".")
-                running_names.pop()
-            running_names.append(name)
+        # if(name != "Unknown"):
+        #     if(len(running_names)>=c_clean):
+        #         a=running_names.count(name)
+        #         r=a/len(running_names)
+        #         if(r>=r_ratio):
+        #             print("Hi, "+name+". Your ID Number is "+id+".")
+        #         running_names.pop()
+        #     running_names.append(name)
 
 
         # Convert to numpy array to adjust coordinates with frame resizing quickly
@@ -229,10 +242,12 @@ while True:
     #Detect Faces
     #face_locations, face_names = sfr.detect_known_faces(frame) #CLEAN INPUTS IN THE DETECTION FUNCTION, SINCE YOU HAVE ACCESS TO INDEX
                                                                 #IMPLEMENT FOR MULTIPLE FACES PER PERSON?
-    for i in embeddings:
-        face_locations, face_names, id = detect_known_faces(frame, i)
-        if(id!=None):
-            break
+    # for i in embeddings:
+    #     face_locations, face_names, id = detect_known_faces(frame, i)
+    #     if(id!=None):
+    #         break
+
+    face_locations, face_names, id = detect_known_faces(frame, embeddings)
     #embeddings = verified(frame, embeddings)
 
     #checking dist
