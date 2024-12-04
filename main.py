@@ -12,7 +12,6 @@ from collections import Counter
 
 load_dotenv() 
 
-ip="http://192.168.222.219/cam-mid.jpg"
 print(ip)
 
 a=np.array([
@@ -37,12 +36,12 @@ def update():
     c=0
     while(c<l):
         db.append(json.loads(content[c]))
-        embeddings.append(np.array(json.loads(content[c])["embeddings"])) #UNCOMMENT FOR PROD PLEASE
+        embeddings.append(np.array(json.loads(content[c])["embeddings"]))
         c=c+1
     print(embeddings)
     # print(content)
 
-update() #UNCOMMENT FOR PROD PLEASE
+update()
 
 #ESP32:
 cap = cv2.VideoCapture(ip)
