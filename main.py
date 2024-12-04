@@ -11,6 +11,7 @@ import json
 from collections import Counter
 
 load_dotenv() 
+ip = os.getenv("IP")
 
 print(ip)
 
